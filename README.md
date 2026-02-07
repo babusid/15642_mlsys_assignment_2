@@ -1,4 +1,4 @@
-# Assignment 3 
+# Assignment Distributed Training
 In this assignment, we will explore how to implement the communication protocols for *Data Parallel* and 
 *Tensor Model Parallel* training from scratch using Message Passing Interface ([MPI](https://mpi4py.readthedocs.io/en/stable/))
 and NumPy.
@@ -20,11 +20,11 @@ ssh [andrew_id]@ghc[X].ghc.andrew.cmu.edu
 Then you should clone this repo and setup your virtual environment:
 
 ```bash
-git clone https://github.com/mlsyscourse/assignment3.git
-cd assignment3
+git clone https://github.com/mlsyscourse/assignment-distributed-training.git
+cd assignment-distributed-training
 pip install virtualenv
-python3 -m venv work_space
-source work_space/bin/activate
+python3 -m venv workspace
+source workspace/bin/activate
 pip install -r requirements.txt
 ```
 Once you have set up your virtual environment, you can resume your working space next time
@@ -33,7 +33,13 @@ by simply using:
 ```bash
 ssh [andrew_id]@ghc[X].ghc.andrew.cmu.edu
 cd assignment3
-source work_space/bin/activate
+source workspace/bin/activate
+```
+
+You can exit the current virtual env by running
+
+```
+deactivate
 ```
 
 You are not required to use the same `[X]`. In case some nodes are in maintenance, please
@@ -303,33 +309,31 @@ carefully to align with the auto-grader hand-in requirements.
 
 Now in your assignment3 root directory run
 ```bash
-zip -j handin.zip model/func_impl.py data/data_parallel_preprocess.py feedback.txt
+tar cvf handin.tar model/func_impl.py data/data_parallel_preprocess.py feedback.txt
 ```
 This will create a zip file with `func_impl.py`, `data_parallel_preprocess.py` and `feedback.txt`.
-You can check the contents of `handin.zip` with 
+You can check the contents of `handin.tar` with 
 ```bash
-zipinfo -1 handin.zip
+tar tvf handin.tar
 ```
-
-to make sure it contains all the needed files:
 
 It is expected to list the three files:
 ```
-func_impl.py
-data_parallel_preprocess.py
-feedback.txt
+-rw-rw-r-- ... model/func_impl.py
+-rw-rw-r-- ... data/data_parallel_preprocess.py
+-rw-rw-r-- ... feedback.txt
 ```
 
-Then, please go to GradeScope at https://www.gradescope.com/courses/951055 and submit the file `handin.zip` to Assignment 3.
+Then, please go to Autolab at https://autolab.andrew.cmu.edu/courses/15442-s26/assessments/Distributed-Training and submit the file `handin.tar`.
 
-You can submit multiple times, and the time stamp of that submission will be used in determining any late penalties.
-Please make sure that your submitted `func_impl.py` and `data_parallel_preprocess.py` are placed at the root level of the zip file (i.e., they are not in any sub-folder),
+You can submit multiple times, and the timestamp of that submission will be used in determining any late penalties.
+Please make sure that your submitted `func_impl.py` and `data_parallel_preprocess.py`,
 or **otherwise the autograder may not process your submission properly**.
 
 **Any attempt to manipulate or compromise the integrity of the autograder will result in severe penalties.**
 
 
-If you are enrolled in the course (on SIO), but not registered on Gradescope, please let the course staff know in a private post on Piazza.
+If you are enrolled in the course (on SIO), but not registered on Autolab, please let the course staff know in a private post on Piazza.
 
 
 #### References 
