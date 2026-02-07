@@ -21,10 +21,12 @@ def check_dp_weight_comm(
     assert input_dict["input_grad_b"].dtype == collected_grad_b.dtype
 
     np.testing.assert_allclose(
-        actual=collected_grad_w, desired=expect_output_dict["grad_w"]
+        actual=collected_grad_w,
+        desired=expect_output_dict["grad_w"] / input_dict["comm"].Get_size(),
     )
     np.testing.assert_allclose(
-        actual=collected_grad_b, desired=expect_output_dict["grad_b"]
+        actual=collected_grad_b,
+        desired=expect_output_dict["grad_b"] / input_dict["comm"].Get_size(),
     )
 
 

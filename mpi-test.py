@@ -19,6 +19,15 @@ if __name__ == "__main__":
     nprocs = comm.Get_size()
     rank = comm.Get_rank()
 
+    if nprocs != 8:
+        if rank == 0:
+            print(
+                "This test requires exactly 8 processes. You can modify the "
+                "code in this file({__file__}) to "
+                "change the number of processes and the test cases."
+            )
+        exit(1)
+
     args = parser.parse_args()
 
     if args.test_case == "allreduce":
@@ -32,7 +41,7 @@ if __name__ == "__main__":
         print("Rank " + str(rank) + ": " + str(r))
 
         comm.Barrier()
-        comm.Allreduce(r, rr, op=MPI.MIN)
+        comm.Allreduce(r, rr, op=MPI.SUM)
 
         if rank == 0:
             print("Allreduce: " + str(rr))
@@ -64,7 +73,7 @@ if __name__ == "__main__":
         print("Rank " + str(rank) + ": " + str(r))
 
         comm.Barrier()
-        comm.Reduce_scatter(r, rr, op=MPI.MIN)
+        comm.Reduce_scatter(r, rr, op=MPI.SUM)
 
         print("Rank " + str(rank) + " After Reduce_scatter: " + str(rr))
 
@@ -89,7 +98,7 @@ if __name__ == "__main__":
         group_comm = comm.Split(key=key, color=color)
 
         group_comm.Barrier()
-        group_comm.Allreduce(r, rr, op=MPI.MIN)
+        group_comm.Allreduce(r, rr, op=MPI.SUM)
 
         print("Rank " + str(rank) + " After split and Allreduce: " + str(rr))
 
