@@ -3,8 +3,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 
-# from model.zero_dp_stage3 import ZeroDPStage3FCLayer
-from reference_solution.zero_dp_stage3 import ZeroDPStage3FCLayer
+from model.zero_dp_stage3 import ZeroDPStage3FCLayer
 
 
 @pytest.mark.mpi
