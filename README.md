@@ -10,8 +10,7 @@ part for you to implement.
 
 ### Setup Guide
 
-We will use the GHC clusters with multi-core machines for this assignment. To start with, you need to log into the GHC cluster `ghc[X].ghc.andrew.cmu.edu` where `X` is between 47 and 86 
-with your **andrew_id** and **password**:
+We will use the GHC clusters with multi-core machines for this assignment. To start with, you need to log into the GHC cluster `ghc[X].ghc.andrew.cmu.edu` with your **andrew_id** and **password**. Since GHC machines tend to go online and offline somewhat frequently, you can check the current availability using the following spreadsheet, which lists online machines from `ghc1` to `ghc86`: [View Online GHC Machines Spreadsheet](https://docs.google.com/spreadsheets/d/1va1b3IBkOy4VSBXQZ3PUN0IVBciMgSiGW7VW424cOj4/edit?gid=0#gid=0). Alternatively, if you prefer automation, you can write a simple bash script to ping all `ghc{1..86}` machines and determine which ones are reachable.
 
 ```bash
 ssh [andrew_id]@ghc[X].ghc.andrew.cmu.edu
@@ -22,7 +21,6 @@ Then you should clone this repo and setup your virtual environment:
 ```bash
 git clone https://github.com/mlsyscourse/assignment-distributed-training.git
 cd assignment-distributed-training
-pip install virtualenv
 python3 -m venv workspace
 source workspace/bin/activate
 pip install -r requirements.txt
