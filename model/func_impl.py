@@ -90,7 +90,7 @@ def get_info(
 
 def naive_collect_forward_input(
     x: np.ndarray,
-    mp_comm,
+    mp_comm: MPI.Comm,
     mp_size: int,
 ):
     """The function for collecting layer fc2's inputs across different nodes with naive model parallelism
@@ -121,13 +121,14 @@ def naive_collect_forward_input(
     # Hint: Try to figure out the way MPI calls deal with the destination memory layout for 2d matrix transfer, this might
     #       might not align with your expected layout. In order to get the correct layout, you may wish to use some NumPy
     #       functions (np.split and np.concatenate might be helpful).
-
-    raise NotImplementedError
-
+    recv_buf = np.empty((x.size*mp_size,), dtype=x.dtype)
+    mp_comm.Allgather(x, recv_buf)
+    bufs = np.split(recv_buf, x.size)
+    return np.concatenate([np.reshape(buf, x.shape) for buf in bufs], axis=-1)
 
 def naive_collect_forward_output(
     out: np.ndarray,
-    mp_comm,
+    mp_comm: MPI.Comm,
     mp_size: int,
 ):
     """The function for collecting layer fc2's outputs across different nodes with naive model parallelism
@@ -153,8 +154,10 @@ def naive_collect_forward_output(
     """TODO: Your code here"""
 
     # Hint: you might have just implemented something similar ^-^
-
-    raise NotImplementedError
+    recv_buf = np.empty((out.size*mp_size,), dtype=out.dtype)
+    mp_comm.Allgather(out, recv_buf)
+    bufs = np.split(recv_buf, out.size)
+    return np.concatenate([np.reshape(buf, out.shape) for buf in bufs], axis=-1)
 
 
 def megatron_collect_forward_input(
