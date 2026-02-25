@@ -123,7 +123,7 @@ def naive_collect_forward_input(
     #       functions (np.split and np.concatenate might be helpful).
     recv_buf = np.empty((x.size*mp_size,), dtype=x.dtype)
     mp_comm.Allgather(x, recv_buf)
-    bufs = np.split(recv_buf, x.size)
+    bufs = np.split(recv_buf, mp_size)
     return np.concatenate([np.reshape(buf, x.shape) for buf in bufs], axis=-1)
 
 def naive_collect_forward_output(
@@ -156,7 +156,7 @@ def naive_collect_forward_output(
     # Hint: you might have just implemented something similar ^-^
     recv_buf = np.empty((out.size*mp_size,), dtype=out.dtype)
     mp_comm.Allgather(out, recv_buf)
-    bufs = np.split(recv_buf, out.size)
+    bufs = np.split(recv_buf, mp_size)
     return np.concatenate([np.reshape(buf, out.shape) for buf in bufs], axis=-1)
 
 
@@ -188,8 +188,7 @@ def megatron_collect_forward_input(
     """TODO: Your code here"""
 
     # Hint: you don't need all the input parameters to get the collected_x
-
-    raise NotImplementedError
+    return x
 
 
 def megatron_collect_forward_output(
