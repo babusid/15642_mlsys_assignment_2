@@ -69,16 +69,15 @@ def get_info(
     mp_idx: int = rank % mp_size
 
     # create the communicators
+    # Split creates groups: processes with same 'color' go in one group, 'key' determines rank within group 
     mp_comm = comm.Split(
         color=dp_idx, key=mp_idx
-    )  # color is dp_idx because we are grouping across the rows
-
+    ) # Processes with same dp_idx (same row in grid) form MP communicator
+    
     dp_comm = comm.Split(
         color=mp_idx, key=dp_idx
-    )  # color is mp_idx because we are grouping across columns
-
-    # Derive the part_in_dim and part_out_dim depend on is_fc1 and is_megatron_mp
-
+    )  # Processes with the same mp_idx (same col in grid) form DP communicator.
+    
     part_in_dim = in_dim
     part_out_dim = out_dim // mp_size
     if (is_megatron_mp and not is_fc1):
@@ -194,7 +193,7 @@ def megatron_collect_forward_input(
 
 def megatron_collect_forward_output(
     out: np.ndarray,
-    mp_comm,
+    mp_comm: MPI.Comm,
     mp_size: int,
 ):
     """The function for collecting layer fc2's outputs across different nodes with megatron-style model parallelism
@@ -221,8 +220,9 @@ def megatron_collect_forward_output(
 
     # Hint: try to work through a toy forward example for megatron-style model parallel to figure out the
     #       the communication functions that you might need
-
-    raise NotImplementedError
+    recv_buf = np.empty_like(out)  # Create a new buffer, not a view
+    mp_comm.Allreduce(out, recv_buf, MPI.SUM)  # Sum all partial results
+    return recv_buf
 
 
 def naive_collect_backward_output(
