@@ -3,7 +3,7 @@ from mpi4py import MPI
 
 
 def get_info(
-    comm,
+    comm: MPI.Comm,
     rank: int,
     mp_size: int,
     dp_size: int,
@@ -11,7 +11,7 @@ def get_info(
     is_megatron_mp: bool,
     in_dim: int,
     out_dim: int,
-):
+) -> tuple[int, int, MPI.Comm, MPI.Comm, int, int]:
     """The function that prepare necessary information for parallel training.
 
     Parameters
@@ -64,21 +64,28 @@ def get_info(
     """TODO: Your code here"""
 
     # Get the mp_idx, dp_idx from rank, mp_size and dp_size (you may not need to use all three of them)
+    # the parallelization grid is dp_size x mp_size
+    dp_idx: int = rank // mp_size
+    mp_idx: int = rank % mp_size
 
-    ...
-
-    # Get the model/data parallel communication groups
-    # the model/data parallel communication group is required to apply mpi operations within the scope of the group
-    # Hint: try to figure out the relationship between the mp_idx, dp_idx with the mp/dp communication group
-    #       and use the comm.Split() function to get the corresponding group.
-
-    ...
+    # create the communicators
+    mp_comm = comm.Split(
+        color=dp_idx, key=mp_idx
+    )  # color is dp_idx because it is the rank within the mp group
+    dp_comm = comm.Split(
+        color=mp_idx, key=dp_idx
+    )  # color is mp_idx because it is the rank within the dp group
 
     # Derive the part_in_dim and part_out_dim depend on is_fc1 and is_megatron_mp
 
-    ...
+    part_in_dim = in_dim
+    part_out_dim = out_dim // mp_size
+    if (is_megatron_mp and not is_fc1):
+        # only affects second layer
+        part_in_dim = in_dim // mp_size
+        part_out_dim = out_dim 
 
-    raise NotImplementedError
+    return mp_idx, dp_idx, mp_comm, dp_comm, part_in_dim, part_out_dim
 
 
 def naive_collect_forward_input(
