@@ -71,10 +71,11 @@ def get_info(
     # create the communicators
     mp_comm = comm.Split(
         color=dp_idx, key=mp_idx
-    )  # color is dp_idx because it is the rank within the mp group
+    )  # color is dp_idx because we are grouping across the rows
+
     dp_comm = comm.Split(
         color=mp_idx, key=dp_idx
-    )  # color is mp_idx because it is the rank within the dp group
+    )  # color is mp_idx because we are grouping across columns
 
     # Derive the part_in_dim and part_out_dim depend on is_fc1 and is_megatron_mp
 
