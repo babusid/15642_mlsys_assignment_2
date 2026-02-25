@@ -1,13 +1,14 @@
 import numpy as np
-
+from typing import Any
+from numpy.typing import NDArray
 
 def split_data(
-    x_train,
-    y_train,
-    mp_size,
-    dp_size,
-    rank,
-):
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    mp_size: int,
+    dp_size: int,
+    rank: int,
+) -> tuple[NDArray[Any], NDArray[Any]]:
     """The function for splitting the dataset uniformly across data parallel groups
 
     Parameters
@@ -46,4 +47,9 @@ def split_data(
     # Try to get the correct start_idx and end_idx from dp_size, mp_size and rank and return
     # the corresponding data
 
-    raise NotImplementedError
+    # idea: we split across the DP dim and then replicate along the mp
+
+    dsplit_x = np.split(x_train, indices_or_sections=dp_size, axis=0) 
+    dsplit_y = np.split(y_train, indices_or_sections=dp_size, axis=0)
+    index = rank // mp_size
+    return (dsplit_x[index], dsplit_y[index])
