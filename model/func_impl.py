@@ -351,14 +351,13 @@ def megatron_collect_backward_x(
 
     """TODO: Your code here"""
 
-    # Hint: your implementation should be within one line of code
     return grad_x
 
 
 def collect_weight_grad(
     grad_w: np.ndarray,
     grad_b: np.ndarray,
-    dp_comm,
+    dp_comm: MPI.Comm,
 ):
     """The function for collecting weight gradients across data parallel nodes
 
@@ -384,7 +383,9 @@ def collect_weight_grad(
     """
 
     """TODO: Your code here"""
-
-    # Hint: Think about how you might want to aggregate the gradients from different nodes in data parallel training
-
-    raise NotImplementedError
+    rgrad_w = np.empty_like(grad_w, dtype=grad_w.dtype)
+    dp_comm.Allreduce(grad_w, rgrad_w, op=MPI.SUM)
+    rgrad_b = np.empty_like(grad_b, dtype=grad_b.dtype)
+    dp_comm.Allreduce(grad_b, rgrad_b, op=MPI.SUM)
+    
+    return rgrad_w / dp_comm.size, rgrad_b / dp_comm.size
