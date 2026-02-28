@@ -1,4 +1,5 @@
 import numpy as np
+from mpi4py import MPI
 
 import sys
 sys.path.append("..")
@@ -6,10 +7,11 @@ sys.path.append("..")
 from typing import List, Tuple, Dict
 from model.Layers import ReLULayer, CrossEntropyLossLayer
 
+
 class ZeroDPStage3FCLayer(object):
     def __init__(
         self,
-        comm,
+        comm: MPI.Comm,
         in_dim: int,
         out_dim: int,
         dp_size: int,
@@ -48,11 +50,11 @@ class ZeroDPStage3FCLayer(object):
             seed : int, optional
                 seed for deterministic parameter initialization
         """
-        self.comm = comm
-        self.rank = comm.Get_rank()
-        self.dp_size = dp_size
-        self.in_dim = in_dim
-        self.out_dim = out_dim
+        self.comm: MPI.Comm = comm
+        self.rank: int = comm.Get_rank()
+        self.dp_size: int = dp_size
+        self.in_dim: int = in_dim
+        self.out_dim: int = out_dim
 
         assert self.dp_size > 0
         assert self.comm.Get_size() == self.dp_size
@@ -113,8 +115,12 @@ class ZeroDPStage3FCLayer(object):
         # partitioning. The returned shard should INCLUDE the padded elements.
         # We keep track of the original shard_size (without padding) for
         # later use in communication.
-
-        return (np.empty(8), 8)
+        flat = tensor.flatten()
+        if(flat.size % num_shards):
+            pad_size = num_shards - (flat.size % num_shards)
+            flat = np.pad(flat, (0, pad_size))
+        shards = np.split(flat, num_shards)
+        return shards[shard_idx], flat.size // num_shards 
 
     def zero_grad(self):
         self.grad_w_shard = np.zeros_like(self.w_shard)
@@ -140,11 +146,18 @@ class ZeroDPStage3FCLayer(object):
             2) Compute FC output.
         """
         self.x = x
+        
+        recv_buf = np.zeros((self.dp_size * self.w_shard_size, ), dtype=self.w_shard.dtype)
+        self.comm.Allgather(self.w_shard, recv_buf)
+        recv_buf = recv_buf[:self.w_numel]
+        full_w = recv_buf.reshape((self.in_dim, self.out_dim))
 
-        """TODO: Your code here"""
+        recv_buf = np.zeros((self.dp_size * self.b_shard_size, ), dtype=self.b_shard.dtype)
+        self.comm.Allgather(self.b_shard, recv_buf)
+        recv_buf = recv_buf[:self.b_numel]
+        full_b = recv_buf.reshape((1, self.out_dim))
 
-
-        raise NotImplementedError
+        return self.x @ full_w + full_b
 
     def backward(self, output_grad: np.ndarray) -> List[np.ndarray]:
         """Backward pass under ZeRO-DP Stage 3.
