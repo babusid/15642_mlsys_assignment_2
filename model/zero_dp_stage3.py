@@ -343,7 +343,7 @@ class ZeroDPAdam(object):
         #   v = beta2*v + (1-beta2)*(grad*grad)
         #   m_hat = m / (1-beta1^t)
         #   v_hat = v / (1-beta2^t)
-        #   p -= lr * m_hat / (sqrt(v_hat) + eps)
+        #   p -= lr * m_hat / (sqrt(v_hat)+ eps)
         # - If you don't understand the Adam update rule, you could consult your AI assistant or
         #  refer to the original Adam paper: https://arxiv.org/abs/1412.6980
 
@@ -362,6 +362,18 @@ class ZeroDPAdam(object):
                     "v": np.zeros_like(param),
                 }
 
-            """TODO: Your code here"""
+            # here, we have access to the current rank's gradient shard, and parameter shard
+            # of the current layer, so no comms needed to update the local params
+            # update m, v
+            m = self.state[key]["m"] 
+            v = self.state[key]["v"] 
+            self.state[key]["m"] = (self.beta1 * m) + (1-self.beta1)*grad
+            self.state[key]["v"] = (self.beta2 * v) + (1-self.beta2)*(grad*grad)
+            
+            m = self.state[key]["m"] 
+            v = self.state[key]["v"] 
+            m_hat = m / (1-self.beta1**self.step_idx)
+            v_hat = v / (1-self.beta2**self.step_idx)
+            
+            param -= self.lr * (m_hat / (np.sqrt(v_hat)+self.eps))
 
-        raise NotImplementedError

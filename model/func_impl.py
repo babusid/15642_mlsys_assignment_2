@@ -388,4 +388,4 @@ def collect_weight_grad(
     rgrad_b = np.empty_like(grad_b, dtype=grad_b.dtype)
     dp_comm.Allreduce(grad_b, rgrad_b, op=MPI.SUM)
     
-    return rgrad_w / dp_comm.size, rgrad_b / dp_comm.size
+    return rgrad_w / dp_comm.Get_size(), rgrad_b / dp_comm.Get_size()
