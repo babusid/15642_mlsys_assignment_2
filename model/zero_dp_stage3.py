@@ -2,6 +2,8 @@ import numpy as np
 from mpi4py import MPI
 
 import sys
+
+from numpy.typing import NDArray
 sys.path.append("..")
 
 from typing import List, Tuple, Dict
@@ -60,7 +62,7 @@ class ZeroDPStage3FCLayer(object):
         assert self.comm.Get_size() == self.dp_size
 
         self.name = f"zero-dp-stage3-fc-{in_dim}x{out_dim}"
-        self.x = None
+        self.x: np.ndarray = None
 
         rng = np.random.default_rng(seed)
         if full_w is None:
@@ -191,9 +193,42 @@ class ZeroDPStage3FCLayer(object):
             these attributes for the optimizer step.
         """
 
-        """TODO: Your code here"""
+        recv_buf = np.zeros((self.dp_size * self.w_shard_size, ), dtype=self.w_shard.dtype)
+        self.comm.Allgather(self.w_shard, recv_buf)
+        recv_buf = recv_buf[:self.w_numel]
+        full_w = recv_buf.reshape((self.in_dim, self.out_dim))
+        
+        # compute the full grads for the params and the bias
+        
+        full_grad_w: np.ndarray = self.x.T @ output_grad  # Shape: (in_dim, out_dim)
+        flat_grad_w: np.ndarray = full_grad_w.flatten()
 
-        raise NotImplementedError
+        full_grad_b: np.ndarray = np.sum(output_grad, axis=0, keepdims=True)  # Shape: (1, out_dim)
+        flat_grad_b: np.ndarray = full_grad_b.flatten()
+        
+        # partition the full grads
+        if flat_grad_w.size % self.dp_size:
+            pad_size = self.dp_size - (flat_grad_w.size % self.dp_size)
+            flat_grad_w = np.pad(flat_grad_w, (0, pad_size))
+        
+        if flat_grad_b.size % self.dp_size:
+            pad_size = self.dp_size - (flat_grad_b.size % self.dp_size)
+            flat_grad_b = np.pad(flat_grad_b, (0, pad_size))
+        
+        # Reduce-scatter to get local shards
+        recv_grad_w = np.empty((self.w_shard_size,), dtype=self.w_shard.dtype)
+        recv_grad_b = np.empty((self.b_shard_size,), dtype=self.b_shard.dtype)
+        
+        self.comm.Reduce_scatter(flat_grad_w, recv_grad_w, op=MPI.SUM)
+        self.comm.Reduce_scatter(flat_grad_b, recv_grad_b, op=MPI.SUM)
+        
+        # Update gradient shards in-place
+        self.grad_w_shard = recv_grad_w
+        self.grad_b_shard = recv_grad_b
+        
+        # 4) Compute and return grad_x
+        grad_x = output_grad @ full_w.T
+        return [grad_x]
 
 
 class ZeroDPMLPModel(object):
