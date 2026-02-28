@@ -69,21 +69,21 @@ def get_info(
     mp_idx: int = rank % mp_size
 
     # create the communicators
-    # Split creates groups: processes with same 'color' go in one group, 'key' determines rank within group 
+    # Split creates groups: processes with same 'color' go in one group, 'key' determines rank within group
     mp_comm = comm.Split(
         color=dp_idx, key=mp_idx
-    ) # Processes with same dp_idx (same row in grid) form MP communicator
-    
+    )  # Processes with same dp_idx (same row in grid) form MP communicator
+
     dp_comm = comm.Split(
         color=mp_idx, key=dp_idx
     )  # Processes with the same mp_idx (same col in grid) form DP communicator.
-    
+
     part_in_dim = in_dim
     part_out_dim = out_dim // mp_size
-    if (is_megatron_mp and not is_fc1):
+    if is_megatron_mp and not is_fc1:
         # only affects second layer
         part_in_dim = in_dim // mp_size
-        part_out_dim = out_dim 
+        part_out_dim = out_dim
 
     return mp_idx, dp_idx, mp_comm, dp_comm, part_in_dim, part_out_dim
 
@@ -113,17 +113,17 @@ def naive_collect_forward_input(
 
     """
 
-
     # Note: you may want to ensure that the source variable and destination variable in your mpi func call should
     #       have the same data type, otherwise you will not collect the correct value.
 
     # Hint: Try to figure out the way MPI calls deal with the destination memory layout for 2d matrix transfer, this might
     #       might not align with your expected layout. In order to get the correct layout, you may wish to use some NumPy
     #       functions (np.split and np.concatenate might be helpful).
-    recv_buf = np.empty((x.size*mp_size,), dtype=x.dtype)
+    recv_buf = np.empty((x.size * mp_size,), dtype=x.dtype)
     mp_comm.Allgather(x, recv_buf)
     bufs = np.split(recv_buf, mp_size)
     return np.concatenate([np.reshape(buf, x.shape) for buf in bufs], axis=-1)
+
 
 def naive_collect_forward_output(
     out: np.ndarray,
@@ -150,9 +150,8 @@ def naive_collect_forward_output(
 
     """
 
-
     # Hint: you might have just implemented something similar ^-^
-    recv_buf = np.empty((out.size*mp_size,), dtype=out.dtype)
+    recv_buf = np.empty((out.size * mp_size,), dtype=out.dtype)
     mp_comm.Allgather(out, recv_buf)
     bufs = np.split(recv_buf, mp_size)
     return np.concatenate([np.reshape(buf, out.shape) for buf in bufs], axis=-1)
@@ -214,7 +213,6 @@ def megatron_collect_forward_output(
 
     """
 
-
     # Hint: try to work through a toy forward example for megatron-style model parallel to figure out the
     #       the communication functions that you might need
     recv_buf = np.empty_like(out)  # Create a new buffer, not a view
@@ -254,7 +252,6 @@ def naive_collect_backward_output(
     return bufs[mp_group_idx]
 
 
-
 def naive_collect_backward_x(
     grad_x: np.ndarray,
     mp_comm: MPI.Comm,
@@ -280,12 +277,20 @@ def naive_collect_backward_x(
 
     """
 
-    """TODO: Your code here"""
-    # fwd pass gathers all of the individual outputs, and concats along the out_dim
-    # split the output along the out_dim, and scatter?
-        
-    
-    raise NotImplementedError
+    # Hint 1: The communication pattern for this function can be seen as the reverse of its forward
+    #         , so you might to check the naive_collect_forward_output() impl.
+
+    # Hint 2: You might want to use Reduce_scatter
+
+    # transpose so that its (features, batch) -> flatten is column major
+    send_buf = np.ascontiguousarray(grad_x.T).flatten()
+    recv_buf = np.empty((grad_x.size // mp_size,), dtype=grad_x.dtype)
+
+    # this will do a sum reduction across the full tensor, then return flattened (partial_feature, batch) chunks, because it partitions on flattened array, which is feature-major
+    mp_comm.Reduce_scatter(send_buf, recv_buf, op=MPI.SUM)
+
+    # reshape back to shape before comm, then transpose back to (batch, partial_feature)
+    return np.reshape(recv_buf, (grad_x.shape[-1] // mp_size, *grad_x.shape[:-1])).T
 
 
 def megatron_collect_backward_output(
