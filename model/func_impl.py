@@ -113,7 +113,6 @@ def naive_collect_forward_input(
 
     """
 
-    """TODO: Your code here"""
 
     # Note: you may want to ensure that the source variable and destination variable in your mpi func call should
     #       have the same data type, otherwise you will not collect the correct value.
@@ -151,7 +150,6 @@ def naive_collect_forward_output(
 
     """
 
-    """TODO: Your code here"""
 
     # Hint: you might have just implemented something similar ^-^
     recv_buf = np.empty((out.size*mp_size,), dtype=out.dtype)
@@ -216,7 +214,6 @@ def megatron_collect_forward_output(
 
     """
 
-    """TODO: Your code here"""
 
     # Hint: try to work through a toy forward example for megatron-style model parallel to figure out the
     #       the communication functions that you might need
@@ -252,14 +249,15 @@ def naive_collect_backward_output(
 
     """TODO: Your code here"""
 
-    # Hint: you might want to use np.split to get the collected_output_grad for each MP node
+    # Hint: you might want to use np.split to get the collected_output_grad for each MP nodes
+    bufs = np.split(output_grad, mp_size, axis=-1)
+    return bufs[mp_group_idx]
 
-    raise NotImplementedError
 
 
 def naive_collect_backward_x(
     grad_x: np.ndarray,
-    mp_comm,
+    mp_comm: MPI.Comm,
     mp_size: int,
 ):
     """The function for collecting layer fc2's grad_x across different nodes with naive model parallelism
@@ -283,12 +281,10 @@ def naive_collect_backward_x(
     """
 
     """TODO: Your code here"""
-
-    # Hint 1: The communication pattern for this function can be seen as the reverse of its forward
-    #         , so you might to check the naive_collect_forward_output() impl.
-
-    # Hint 2: You might want to use reduce_scatter
-
+    # fwd pass gathers all of the individual outputs, and concats along the out_dim
+    # split the output along the out_dim, and scatter?
+        
+    
     raise NotImplementedError
 
 
